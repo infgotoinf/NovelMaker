@@ -1,0 +1,21 @@
+#include "backgrounds/backgrounds_black_screen.h"
+#include "backgrounds/backgrounds_danils_home1.h"
+#include "backgrounds/backgrounds_danils_home2.h"
+#include "backgrounds/backgrounds_forest.h"
+#include "backgrounds/backgrounds_winter_mountain.h"
+
+#include "characters/danil/danil_agree.h"
+#include "characters/danil/danil_disagree.h"
+#include "characters/danil/danil_exited.h"
+#include "characters/danil/danil_looking_up.h"
+#include "characters/danil/danil_scared.h"
+#include "characters/danil/danil_sleeping.h"
+#include "characters/danil/danil_waking_up.h"
+
+#include "characters/linus_torvalds/linus_torvalds_based.h"
+#include "characters/linus_torvalds/linus_torvalds_scarry.h"
+
+#include "characters/shark_guy/shark_guy_TwT.h"
+#include "characters/shark_guy/shark_guy_angry.h"
+#include "characters/shark_guy/shark_guy_grinning.h"
+#include "characters/shark_guy/shark_guy_scarry.h"

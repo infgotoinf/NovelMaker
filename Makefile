@@ -8,6 +8,7 @@
 #                      ╚═════╝  ╚═════╝ ╚═╝╚══════╝╚═════╝
 #
 ##---------------------------------------------------------------------------------
+# TODO: check if I wrote requrements right and make their instalation in 1-2 lines
 #                           Requirements to build
 #
 # To build this programm on windows you will need: make, g++, libstdc++, lwinpthread
@@ -15,9 +16,11 @@
 # And install them via UCRT64 (C:\msys64\ucrt64.exe):
 # pacman -Syu
 # pacman -S make
+# pacman -S lua
 # pacman -S mingw-w64-ucrt-x86_64-toolchain
 #
-# You will also need freetype, libpng, harfbuzz, brotli, bzip2, graphite2, SDL2
+# You will also have to install `freetype, libpng, harfbuzz, brotli, bzip2,
+# graphite2, SDL2, sol2`
 # pacman -S mingw-w64-ucrt-x86_64-LIBNAME
 # 
 #----------------------------------------------------------------------------------
@@ -44,8 +47,10 @@ IMGUI_FREETYPE_DIR = $(3RDPARTY_DIR)/imgui/freetype
 IMGUI_FD_DIR       = $(3RDPARTY_DIR)/imgui_fd
 STB_DIR            = $(3RDPARTY_DIR)/stb
 
-WIN_SDL2_DIR     = C:/msys64/ucrt64/include/SDL2
-WIN_FREETYPE_DIR = C:/msys64/ucrt64/include/freetype2
+UCRT64_DIR       = C:/msys64/ucrt64
+WIN_LUA_DIR      = ${UCRT64_DIR}/include
+WIN_SDL2_DIR     = ${UCRT64_DIR}/include/SDL2
+WIN_FREETYPE_DIR = ${UCRT64_DIR}/include/freetype2
 
 
 SOURCES := $(shell find $(PROJECT_DIR) -maxdepth 1 -name '*.cpp') \
@@ -64,9 +69,10 @@ CXXHEADERS = -I$(INCLUDE_DIR) \
              -I$(IMGUI_DIR) \
              -I$(IMGUI_FREETYPE_DIR) \
              -I$(IMGUI_FD_DIR) \
+			 -I$(STB_DIR) \
+			 -I$(WIN_LUA_DIR) \
              -I$(WIN_SDL2_DIR) \
              -I$(WIN_FREETYPE_DIR) \
-			 -I$(STB_DIR)
 
     # Warnings
 RELEASE_CXXFLAGS = -Wall \
@@ -99,7 +105,7 @@ RELEASE_CXXFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections \
 DEBUG_CXXFLAGS = -g -g3 -Og -Wall -Wextra -pedantic
 
 LDFLAGS = -lmingw32 -lSDL2main -lSDL2 -lfreetype -lpng -lharfbuzz -lgraphite2 \
-          -ldwrite -lbrotlidec -lbrotlicommon -lbz2 -lz -lusp10 -lrpcrt4 \
+          -ldwrite -lbrotlidec -lbrotlicommon -lbz2 -lz -lusp10 -lrpcrt4 -llua \
           -Wl,--dynamicbase -Wl,--nxcompat \
           -static-libstdc++ -static-libgcc -lwinpthread -lsetupapi -lhid \
           -lwinmm -limm32 -lshell32 -lole32 -loleaut32 -luuid -lversion -msse2

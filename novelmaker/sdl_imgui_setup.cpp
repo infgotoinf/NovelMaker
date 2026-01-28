@@ -106,13 +106,9 @@ namespace NM
         ImGuiStyle& style = ImGui::GetStyle();
     
         // Bake a fixed style scale.
-        // (until we have a solution for dynamic style scaling, changing this requires resetting
-        // Style + calling this again)
         style.ScaleAllSizes(main_scale);
     
         // Set initial font scale.
-        // (using io.ConfigDpiScaleFonts=true makes this unnecessary. We leave both here for
-        // documentation purpose)
         style.FontScaleDpi = main_scale;
     
         ImVec4* colors = ImGui::GetStyle().Colors;

@@ -1,6 +1,7 @@
 #define DEVELOPER_OPTIONS // Disable this for a release
 
-//#include <string>
+#include <vector>
+#include <string>
 
 #include <SDL.h>
 #include <SDL_syswm.h>
@@ -8,11 +9,17 @@
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
 
+#define SOL_ALL_SAFETIES_ON 1
+#include <sol/sol.hpp>
+
 #include "3rdparty/imgui/imgui.h"
 #include "3rdparty/imgui/imgui_impl_sdl2.h"
 #include "3rdparty/imgui/imgui_impl_sdlrenderer2.h"
+#include "3rdparty/imgui/imgui_stdlib.h"
 
 #include "include/sdl_imgui_setup.hpp"
+#include "include/lua_handler.hpp"
+#include "include/menu_bar_functions.hpp"
 
 //=================================================================================================
 //      START OF THE MAIN CODE
@@ -32,23 +39,16 @@ int main(int, char**)
     NM::setupFonts(io);
     NM::setupStyle(main_scale);
 
+    sol::state lua = NM::createLuaState();
+
 //-------------------------------------------------------------------------------------------------
 //      STATE
 //-------------------------------------------------------------------------------------------------
 
-    // Making app to take entire screen
-    SDL_DisplayMode dm;
-    SDL_GetCurrentDisplayMode(0, &dm);
-    int display_width = dm.w;
-    int display_height = dm.h; 
-    SDL_SetWindowSize(window, display_width/2, display_height/2);
-    SDL_SetWindowPosition(window, display_width/2, display_height/2);
-
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
     bool show_demo_window = true;
-    int counter = 0;
-    float f = 0;
+    bool show_new_project_window = false;
+    bool show_open_project_window = false;
+    std::string novel_lua_text_data = "";
 
 //=================================================================================================
 //      START OF THE MAIN LOOP
@@ -57,15 +57,7 @@ int main(int, char**)
     bool done = false;
     while (!done)
     {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui
-        // wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main
-        //   application, or clear/overwrite your copy of the mouse data.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main
-        //   application, or clear/overwrite your copy of the keyboard data.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your
-        // application based on those two flags.
+        // You basically don't want to touch this part
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -88,63 +80,107 @@ int main(int, char**)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-//-------------------------------------------------------------------------------------------------
+//=================================================================================================
+//          APPLICATION INTERFACE
+//=================================================================================================
+//          WINDOW MENU BAR
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        if (ImGui::BeginMainMenuBar())
+        {
+            if (ImGui::BeginMenu("Project"))
+            {
+                if (ImGui::MenuItem("New"))
+                {
+                    show_new_project_window = true;
+                }
+                if (ImGui::MenuItem("Open"))
+                {
+                    show_open_project_window = true;
+                }
+                if (ImGui::MenuItem("Recent"))
+                {
+
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
+        }
+
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //          MAIN WINDOW
-//-------------------------------------------------------------------------------------------------
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-        ImGuiWindowFlags main_window_flags = 0;
-        main_window_flags = ImGuiWindowFlags_NoScrollbar
-                          | ImGuiWindowFlags_NoDecoration
-                          | ImGuiWindowFlags_NoMove
-                          | ImGuiWindowFlags_NoSavedSettings
-                          | ImGuiWindowFlags_NoBringToFrontOnFocus;
+        static ImGuiWindowFlags main_window_flags = ImGuiWindowFlags_NoDecoration
+                                                  | ImGuiWindowFlags_NoMove
+                                                  | ImGuiWindowFlags_NoSavedSettings
+                                                  | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
+        static ImGuiInputTextFlags input_flags = ImGuiInputTextFlags_AllowTabInput
+                                               | ImGuiInputTextFlags_WordWrap
+                                               | ImGuiInputTextFlags_CtrlEnterForNewLine;
 
         static bool use_work_area = true;
 
-        // We demonstrate using the full viewport area or the work area
-        // (without menu-bars, task-bars etc.)
-        // Based on your use case you may want one or the other.
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        static const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(use_work_area ? viewport->WorkPos : viewport->Pos);
         ImGui::SetNextWindowSize(use_work_area ? viewport->WorkSize : viewport->Size);
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//          MAIN WINDOW CONTENT
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    ImGui::Begin("Novel Maker", nullptr, main_window_flags);
-    {
-        ImGui::Text("This is some useful text.");
-        ImGui::Checkbox("Demo Window", &show_demo_window);
-        
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        ImGui::ColorEdit3("clear color", (float*)&clear_color);
-        
-        if (ImGui::Button("Button"))
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-        
-        ImGui::Text("Text");
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-    }
-    ImGui::End();
+        ImGui::Begin("Novel Maker", nullptr, main_window_flags);
+        {
+        #ifdef DEVELOPER_OPTIONS
+            ImGui::Checkbox("Demo Window", &show_demo_window);
+        #endif
+            ImGui::InputTextMultiline("##novel_lua", &novel_lua_text_data
+                                    , ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16)
+                                    , input_flags);
+        }
+        ImGui::End();
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //          CHILD WINDOWS
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-        ImGui::SetNextWindowSize(ImVec2(500, 400));
+        //ImGui::SetNextWindowSize(ImVec2(500, 400));
+
+        //ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x/2, viewport->WorkPos.y/2));
+
+        static bool opening_project_exists = true;
+
+        if (show_open_project_window)
+            opening_project_exists =
+                    showProjectOpeningWindow(&show_open_project_window, &novel_lua_text_data);
+
+        if (opening_project_exists == false)
+        {    
+            static ImGuiWindowFlags error_window_flags = ImGuiWindowFlags_NoSavedSettings
+                                                       | ImGuiWindowFlags_AlwaysAutoResize
+                                                       | ImGuiWindowFlags_NoCollapse;
+
+            ImGui::Begin("Error", nullptr, error_window_flags);
+            ImGui::Text("Coudn't find 'novel.lua' in the project's root folder!");
+            if (ImGui::Button("Ok"))
+            {
+                opening_project_exists = true;
+            }
+            ImGui::End();
+        }
+
+        if (show_new_project_window)
+            showNewProjectCreationWindow(&show_new_project_window, &novel_lua_text_data);
+
 
     #ifdef DEVELOPER_OPTIONS
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
     #endif
 
-//-------------------------------------------------------------------------------------------------
+//=================================================================================================
 //          RENDERING
-//-------------------------------------------------------------------------------------------------
+//=================================================================================================
         ImGui::Render();
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
