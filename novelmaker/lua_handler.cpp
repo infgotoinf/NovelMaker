@@ -58,19 +58,21 @@ namespace NM
         return lua;
     }
 
-    Novel loadNovelFromLuaFile(sol::state lua, const char* path_to_file)
+    Novel loadNovelFromLuaCode(sol::state& lua, const std::string& lua_code)
     {
-        sol::protected_function_result result = lua.script_file(path_to_file);
+        sol::protected_function_result result = lua.safe_script(lua_code, sol::script_pass_on_error);
+    
         if (!result.valid())
         {
             sol::error err = result;
             std::cerr << "Lua error: " << err.what() << std::endl;
-            std::exit(1);
+            //std::exit(1);
+            return Novel{};
         }
-    
+
         sol::function getNovel = result;
         sol::table LuaNovel = getNovel();
-        
+    
         Novel novel(LuaNovel);
 
         return novel;

@@ -32,13 +32,15 @@ void openProject(std::string novel_lua_path, std::string* novel_lua_text_data)
     novel_lua_file.close();
 }
 
-bool showProjectOpeningWindow(bool* p_open, std::string* novel_lua_text_data)
+bool showProjectOpeningWindow(bool* p_open, std::string* novel_lua_text_data
+                            , std::string* path_to_project_dir)
 {
     std::string project_location = ".";
     IGFD::FileDialogConfig config;config.path = project_location;
     ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose project location directory"
                                           , nullptr, config);
 
+    //ImGui::SetNextWindowSize(ImVec2(500, 400));
     bool ret_code = true;
     if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey"))
     {
@@ -51,6 +53,7 @@ bool showProjectOpeningWindow(bool* p_open, std::string* novel_lua_text_data)
             if (fs::is_regular_file(novel_lua_path))
             {
                 openProject(novel_lua_path, novel_lua_text_data);
+                *path_to_project_dir = project_location;
             }
             else {
                 ret_code = false;
@@ -135,6 +138,8 @@ bool createProject(std::string project_location, std::string* novel_lua_path)
     stbi_write_png(cur_image_location.c_str(), c_xy, c_xy, 4, danil_sleeping, c_xy * 4);
     cur_image_location = danil_dir_location + "\\waking_up.png";
     stbi_write_png(cur_image_location.c_str(), c_xy, c_xy, 4, danil_waking_up, c_xy * 4);
+    cur_image_location = danil_dir_location + "\\scared.png";
+    stbi_write_png(cur_image_location.c_str(), c_xy, c_xy, 4, danil_scared, c_xy * 4);
 
     std::string shark_guy_dir_location = images_characters_dir_location + "\\shark_guy";
     fs::create_directory(shark_guy_dir_location);
@@ -158,7 +163,8 @@ bool createProject(std::string project_location, std::string* novel_lua_path)
 }
 
 
-void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data)
+void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data
+                                , std::string* path_to_project_dir)
 {
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings
                                   | ImGuiWindowFlags_AlwaysAutoResize
@@ -175,7 +181,7 @@ void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data
         ImGui::SameLine();
         
         static bool show_browse_location_window = false;
-        static std::string path_to_project_dir;
+        static std::string path_to_project_dir_;
 
         if (ImGui::Button("..."))
         {
@@ -192,8 +198,8 @@ void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data
         bool data_correct = location_is_valid && project_name_entered;
         if (data_correct)
         {
-            path_to_project_dir = project_location + "\\" + project_name;
-            ImGui::TextWrapped("Project will be created at: %s", path_to_project_dir.c_str());
+            path_to_project_dir_ = project_location + "\\" + project_name;
+            ImGui::TextWrapped("Project will be created at: %s", path_to_project_dir_.c_str());
         }
         ImGui::Separator();
 
@@ -211,23 +217,22 @@ void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data
                            - confirm_button_width);
 
         // Making button disabled
-        if (data_correct == false)
-            ImGui::BeginDisabled();
+        ImGui::BeginDisabled(data_correct == false);
 
         static bool project_created;
         if (ImGui::Button("Confirm"))
         {
             std::string novel_lua_path = "";
-            project_created = createProject(path_to_project_dir, &novel_lua_path);
+            project_created = createProject(path_to_project_dir_, &novel_lua_path);
             if (project_created)
             {
                 *p_open = false;
                 openProject(novel_lua_path, novel_lua_text_data);
+                *path_to_project_dir = path_to_project_dir_;
             }
         }
 
-        if (data_correct == false)
-            ImGui::EndDisabled();
+        ImGui::EndDisabled();
 
         ImGui::End();
     }

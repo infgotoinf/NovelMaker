@@ -1,10 +1,14 @@
-#define DEVELOPER_OPTIONS // Disable this for a release
+//#define DEVELOPER_OPTIONS // Disable this for a release
 
+#include <cstddef>
+#include <exception>
 #include <vector>
 #include <string>
+#include <fstream>
 
-#include <SDL.h>
-#include <SDL_syswm.h>
+#include <SDL2/SDL_syswm.h>
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
@@ -20,6 +24,40 @@
 #include "include/sdl_imgui_setup.hpp"
 #include "include/lua_handler.hpp"
 #include "include/menu_bar_functions.hpp"
+#include "include/image_handler.hpp"
+
+
+struct Step
+{
+    std::vector<Image> ch_images;
+    Image bg_image;
+
+    std::string text;  
+};
+
+std::vector<Step> novelToSteps(Novel novel, std::string path_to_project, SDL_Renderer* renderer)
+{
+    std::vector<Step> steps;
+    for (Scene scene : novel.scenes)
+    {
+        std::string path_to_bg = path_to_project + scene.background;
+        for (DialogueLine dialogue : scene.dialogues)
+        {
+            std::vector<Image> ch_images;
+            for (std::string ch : dialogue.characters)
+            {
+                std::string path_to_ch = path_to_project + ch;
+                ch_images.push_back(createImage(path_to_ch.c_str(), renderer));
+            }
+            Step step = {.ch_images = ch_images
+                       , .bg_image = createImage(path_to_bg.c_str(), renderer)
+                       , .text = dialogue.text};
+
+            steps.push_back(step);
+        }
+    }
+    return steps;
+}
 
 //=================================================================================================
 //      START OF THE MAIN CODE
@@ -45,10 +83,19 @@ int main(int, char**)
 //      STATE
 //-------------------------------------------------------------------------------------------------
 
+#ifdef DEVELOPER_OPTIONS
     bool show_demo_window = true;
+#endif
     bool show_new_project_window = false;
     bool show_open_project_window = false;
     std::string novel_lua_text_data = "";
+    std::string path_to_project = "";
+    Novel novel{};
+    
+    std::vector<Step> steps;
+
+    size_t step_id = 0;
+    size_t counter = 1;
 
 //=================================================================================================
 //      START OF THE MAIN LOOP
@@ -102,6 +149,10 @@ int main(int, char**)
                 {
 
                 }
+                if (ImGui::MenuItem("Save..."))
+                {
+                    
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
@@ -133,12 +184,90 @@ int main(int, char**)
         {
         #ifdef DEVELOPER_OPTIONS
             ImGui::Checkbox("Demo Window", &show_demo_window);
+            ImGui::SameLine();
         #endif
-            ImGui::InputTextMultiline("##novel_lua", &novel_lua_text_data
-                                    , ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16)
-                                    , input_flags);
+            ImGui::BeginDisabled(path_to_project.size() == 0);
+            if (ImGui::Button("Save"))
+            {
+                std::string novel_lua_path = path_to_project + "\\novel.lua";
+                std::ofstream novel_lua_file(novel_lua_path);
+                novel_lua_file << novel_lua_text_data << std::endl;
+                novel_lua_file.close();
+                novel = NM::loadNovelFromLuaCode(lua, novel_lua_text_data);
+                steps = novelToSteps(novel, path_to_project, renderer);
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            static bool show_config = true;
+            if (ImGui::Button("Hide config"))
+            {
+                show_config = !show_config;
+            }
+
+            if (show_config)
+            {
+                ImGui::InputTextMultiline("##novel_lua", &novel_lua_text_data
+                                        , ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16)
+                                        , input_flags);
+                ImGui::Spacing();
+                ImGui::Text("Path to project: %s", path_to_project.c_str());
+            }
+            ImGui::Separator();
+            float preview_begin = ImGui::GetCursorPosY();
+
+            if (!steps.empty())
+            {
+                Step cur_step = steps[step_id];
+                Image cur_bg = cur_step.bg_image;
+                float bg_x = ImGui::GetContentRegionAvail().x;
+                float resize_coef = bg_x / cur_bg.width;
+                float bg_y = resize_coef * cur_bg.height;
+                ImGui::Image(cur_bg.texture, ImVec2 {bg_x, bg_y});
+
+                int number_of_ch_images = cur_step.ch_images.size();
+                for (int i = 0 ; i < number_of_ch_images; ++i)
+                {
+                    Image cur_ch_image = cur_step.ch_images[i];
+                    float ch_x = resize_coef * cur_ch_image.width;
+                    float ch_y = resize_coef * cur_ch_image.height;
+                    ImGui::SetCursorPosY(preview_begin);
+                    ImGui::SetCursorPosX(((bg_x - number_of_ch_images * ch_x)
+                                       / (number_of_ch_images + 1)) * (i + 1) + i * ch_x);
+                    ImGui::Image(cur_ch_image.texture, ImVec2 {ch_x, ch_y});
+                }
+                float old_size = ImGui::GetFont()->Scale;
+                ImGui::GetFont()->Scale *= 3 * resize_coef;
+                ImGui::PushFont(ImGui::GetFont());
+                ImGui::TextWrapped(cur_step.text.substr(0, counter).c_str());
+                if (counter != cur_step.text.size())
+                    ++counter;
+                ImGui::GetFont()->Scale = old_size;
+                ImGui::PopFont();
+            }           
         }
         ImGui::End();
+
+        if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)
+          | ImGui::IsKeyPressed(ImGuiKey_D)
+          | ImGui::IsKeyPressed(ImGuiKey_L))
+        {
+            if(step_id < (steps.size() - 1))
+            {
+                ++step_id;
+                counter = 1;
+            }
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)
+          | ImGui::IsKeyPressed(ImGuiKey_A)
+          | ImGui::IsKeyPressed(ImGuiKey_H))
+        {
+            if(step_id > 0)
+            {
+                --step_id;
+                counter = 1;
+            }
+        }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //          CHILD WINDOWS
@@ -151,8 +280,17 @@ int main(int, char**)
         static bool opening_project_exists = true;
 
         if (show_open_project_window)
+        {
+            std::string old_novel_lua_text_data = novel_lua_text_data;
             opening_project_exists =
-                    showProjectOpeningWindow(&show_open_project_window, &novel_lua_text_data);
+                    showProjectOpeningWindow(&show_open_project_window, &novel_lua_text_data
+                                           , &path_to_project);
+            if (old_novel_lua_text_data != novel_lua_text_data)
+            {
+                novel = NM::loadNovelFromLuaCode(lua, novel_lua_text_data);
+                steps = novelToSteps(novel, path_to_project, renderer);
+            }
+        }
 
         if (opening_project_exists == false)
         {    
@@ -170,7 +308,16 @@ int main(int, char**)
         }
 
         if (show_new_project_window)
-            showNewProjectCreationWindow(&show_new_project_window, &novel_lua_text_data);
+        {
+            std::string old_novel_lua_text_data = novel_lua_text_data;
+            showNewProjectCreationWindow(&show_new_project_window, &novel_lua_text_data
+                                       , &path_to_project);
+            if (old_novel_lua_text_data != novel_lua_text_data)
+            {
+                novel = NM::loadNovelFromLuaCode(lua, novel_lua_text_data);
+                steps = novelToSteps(novel, path_to_project, renderer);
+            }
+        }
 
 
     #ifdef DEVELOPER_OPTIONS

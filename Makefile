@@ -52,6 +52,8 @@ WIN_LUA_DIR      = ${UCRT64_DIR}/include
 WIN_SDL2_DIR     = ${UCRT64_DIR}/include/SDL2
 WIN_FREETYPE_DIR = ${UCRT64_DIR}/include/freetype2
 
+WIN_LIB_DIR      = ${UCRT64_DIR}/lib
+
 
 SOURCES := $(shell find $(PROJECT_DIR) -maxdepth 1 -name '*.cpp') \
            $(shell find $(3RDPARTY_DIR) -name '*.cpp')
@@ -63,7 +65,7 @@ OBJS    := $(SOURCES:%=$(BUILD_DIR)/$(build)_%.o)
 ##                                        FLAGS
 ##-------------------------------------------------------------------------------------------------
 
-CXXFLAGS = -std=c++17
+CXXFLAGS = -std=c++20
 
 CXXHEADERS = -I$(INCLUDE_DIR) \
              -I$(IMGUI_DIR) \
@@ -85,7 +87,7 @@ RELEASE_CXXFLAGS += -g0 # turn off debugability of app
 
     # Optimisations
 RELEASE_CXXFLAGS += -O3 # based optimisation
-RELEASE_CXXFLAGS += -flto # Link Time Optimization (based)
+# RELEASE_CXXFLAGS += -flto # Link Time Optimization (based)
 RELEASE_CXXFLAGS += -funroll-loops # Loop Unrolling
 
     # Math simplification
@@ -104,11 +106,13 @@ RELEASE_CXXFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections \
 
 DEBUG_CXXFLAGS = -g -g3 -Og -Wall -Wextra -pedantic
 
-LDFLAGS = -lmingw32 -lSDL2main -lSDL2 -lfreetype -lpng -lharfbuzz -lgraphite2 \
-          -ldwrite -lbrotlidec -lbrotlicommon -lbz2 -lz -lusp10 -lrpcrt4 -llua \
-          -Wl,--dynamicbase -Wl,--nxcompat \
-          -static-libstdc++ -static-libgcc -lwinpthread -lsetupapi -lhid \
-          -lwinmm -limm32 -lshell32 -lole32 -loleaut32 -luuid -lversion -msse2
+LDFLAGS = -static \
+          -L$(WIN_LIB_DIR) \
+          -lmingw32 -lSDL2main -lSDL2 -lfreetype -lpng16 -lharfbuzz -lgraphite2 \
+          -lbrotlidec -lbrotlicommon -lbz2 -lz -llua \
+          -ldwrite -lusp10 -lrpcrt4 \
+          -lsetupapi -lhid -lwinmm -limm32 -lshell32 -lole32 -loleaut32 -luuid -lversion \
+          -Wl,--dynamicbase -Wl,--nxcompat -msse2
 
 ##---------------------------------------------------------------------------------
 ##                         DEBUG AND RELEASE REALISATION

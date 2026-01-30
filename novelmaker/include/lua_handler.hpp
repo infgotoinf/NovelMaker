@@ -28,12 +28,14 @@ struct Novel
     std::vector<Scene> scenes;
 
     Novel(const sol::table& luaNovel);
+    Novel() = default; 
+    Novel& operator=(const Novel& n) = default;
 };
 
 namespace NM
 {
     sol::state createLuaState();
-    Novel openLuaFile(sol::state& lua);
+    Novel loadNovelFromLuaCode(sol::state& lua, const std::string& lua_code);
 }
 
 #endif // LUA_HANDLER_

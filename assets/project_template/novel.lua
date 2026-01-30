@@ -31,6 +31,7 @@ local images = {
       looking_up = "looking_up.png",
       sleeping = "sleeping.png",
       waking_up = "waking_up.png",
+      scared = "scared.png",
     },
     linus_torvalds = {
       dir = characters_dir .. "linus_torvalds/",
@@ -65,12 +66,20 @@ local novel = {
       {
         characters = { toPath(danil, "waking_up") },
         text = "Данил: Хммммммм...."
+      },
+      {
+        characters = { toPath(danil, "exited") },
+        text = "Данил: Я ЧЁ ОчУтИлСя В ВолШебНоМ ЛЕсУ?!?!?!?"
       }
     },
   },
   {
-    background = toPath(images.backgrounds, "winter_mountain.jpg"),
+    background = toPath(images.backgrounds, "winter_mountain"),
     {
+      {
+        characters = { toPath(danil, "exited") },
+        text = "..."
+      },
       {
         characters = { toPath(danil, "looking_up") },
         text = "Данил: А чё это вдруг резко зима началась?"
@@ -110,7 +119,7 @@ local novel = {
     }
   },
   {
-    background = toPath(images.background, "black_screen"),
+    background = toPath(images.backgrounds, "black_screen"),
     {
       {
         characters = { },
@@ -119,7 +128,7 @@ local novel = {
     }
   },
   {
-    background = toPath(images.background, "danils_home1"),
+    background = toPath(images.backgrounds, "danils_home1"),
     {
       {
         characters = { },
@@ -128,7 +137,7 @@ local novel = {
     }
   },
   {
-    background = toPath(images.background, "danils_home2"),
+    background = toPath(images.backgrounds, "danils_home2"),
     {
       {
         characters = { },
@@ -147,20 +156,20 @@ local novel = {
         text = "...: Тук-тук-тук..."
       },
       {
-        characters = { toPath(linus_torwalds, "scarry") },
+        characters = { toPath(linus_torvalds, "scarry") },
         text = "ПРИШЛО ВРЕМЯ СТАВИТЬ ЛИНУКС"
       }
     }
   },
   {
-    background = toPath(images.background, "black_screen"),
+    background = toPath(images.backgrounds, "black_screen"),
     {
       {
         characters = { },
         text = "КОНЕЦ"
       },
       {
-        characters = { toPath(linus_torwalds, "scarry") },
+        characters = { toPath(linus_torvalds, "scarry") },
         text = "ВЫ СЛЕДУЮЩИЕ"
       }
     }

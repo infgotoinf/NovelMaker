@@ -3,9 +3,11 @@
 
 #include <string>
 
-bool showProjectOpeningWindow(bool* p_open, std::string* novel_lua_text_data);
+bool showProjectOpeningWindow(bool* p_open, std::string* novel_lua_text_data
+                            , std::string* path_to_project_dir);
 
-void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data);
+void showNewProjectCreationWindow(bool* p_open, std::string* novel_lua_text_data
+                                   , std::string* path_to_project_dir);
 
 std::string openProject();
 
